@@ -42,3 +42,8 @@ def test_coordinator():
 def test_cli():
     assert main(["audit", "--task-id", "CLI-01"]) == 0
     assert main(["chat", "What", "is", "the", "system", "status?"]) == 0
+
+
+def test_batch_missing_file_returns_error():
+    """Batch command should return non-zero exit code when input file is missing."""
+    assert main(["batch", "-i", "nonexistent_file.csv"]) == 1

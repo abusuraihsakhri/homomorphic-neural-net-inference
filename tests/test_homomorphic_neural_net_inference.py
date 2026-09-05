@@ -23,6 +23,15 @@ def test_phi_guard_enforcement():
     PHIGuard.assert_no_phi("Analytical assay specimen KEY-001 optimal")
 
 
+def test_phi_guard_email_detection():
+    """Email addresses should be flagged as PHI."""
+    with pytest.raises(SecurityException):
+        PHIGuard.assert_no_phi("Contact patient at john.doe@hospital.org for follow-up")
+
+    # Non-email text passes
+    PHIGuard.assert_no_phi("Report generated for specimen analysis")
+
+
 def test_specialized_workers():
     # Worker 1: QC Invariant
     p1 = SystemTaskPayload(task_id="T1", target_identifier="KEY-01", primary_metric=35.0)
@@ -63,3 +72,8 @@ def test_supervisor_consensus_and_audit():
     assert main(["audit", "--task-id", "CLI-TEST-01"]) == 0
     assert main(["chat", "Explain", "specifications"]) == 0
     assert main(["verify-audit"]) == 0
+
+
+def test_batch_missing_file_returns_error():
+    """Batch command should return non-zero exit code when input file is missing."""
+    assert main(["batch", "-i", "nonexistent_file.csv"]) == 1
