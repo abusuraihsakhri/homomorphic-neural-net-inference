@@ -4,6 +4,7 @@ Command Line Interface for Homomorphic Neural Net Inference.
 import argparse
 import csv
 import json
+import math
 import os
 import sys
 from agents.models import SystemTaskPayload
@@ -14,12 +15,22 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 
 def safe_csv_row(row):
-    """Prevent spreadsheet formula execution when exported CSV is opened."""
-    return {
-        key: ("'" + value if isinstance(value, str)
-              and value.lstrip().startswith(("=", "+", "-", "@")) else value)
-        for key, value in row.items()
-    }
+    """Escape spreadsheet expressions while preserving ordinary signed numbers."""
+    def protect(value):
+        if not isinstance(value, str):
+            return value
+        trimmed = value.lstrip()
+        if trimmed.startswith(("+", "-")):
+            try:
+                if math.isfinite(float(trimmed)):
+                    return value
+            except ValueError:
+                pass
+        if trimmed.startswith(("=", "+", "-", "@")):
+            return "'" + value
+        return value
+
+    return {key: protect(value) for key, value in row.items()}
 
 
 def parse_csv_bool(value):

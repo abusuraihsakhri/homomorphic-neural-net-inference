@@ -91,3 +91,19 @@ def test_export_escapes_spreadsheet_formulas(tmp_path):
     with out.open(newline="", encoding="utf-8") as handle:
         row = next(csv.DictReader(handle))
     assert row["task_id"] == "'=1+2"
+
+def test_negative_numeric_values_remain_reimportable(tmp_path):
+    inp = tmp_path / "numbers.csv"
+    inp.write_text(
+        "task_id,target_identifier,primary_metric,secondary_metric,is_critical_flag,status_descriptor\n"
+        "T1,SYNTHETIC,-3,-2,False,NOMINAL\n", encoding="utf-8"
+    )
+    for cli_fn in (primary_cli, legacy_cli):
+        first = tmp_path / (cli_fn.__module__.replace(".", "_") + ".csv")
+        second = tmp_path / (cli_fn.__module__.replace(".", "_") + "_second.csv")
+        assert cli_fn(["batch", "-i", str(inp), "-o", str(first)]) == 0
+        with first.open(newline="", encoding="utf-8") as handle:
+            row = next(csv.DictReader(handle))
+        assert row["primary_metric"] == "-3"
+        assert row["secondary_metric"] == "-2"
+        assert cli_fn(["batch", "-i", str(first), "-o", str(second)]) == 0
