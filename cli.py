@@ -14,6 +14,16 @@ from agents.base import AuditLogger
 supervisor = SystemSupervisor(model_provider="mock")
 
 
+def finite_float(value):
+    try:
+        result = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Expected a finite number") from exc
+    if not math.isfinite(result):
+        raise argparse.ArgumentTypeError("Expected a finite number")
+    return result
+
+
 def safe_csv_row(row):
     """Escape spreadsheet expressions while preserving ordinary signed numbers."""
     def protect(value):
@@ -51,8 +61,8 @@ def main(argv=None):
     p_audit = subparsers.add_parser("audit", help="Run single task evaluation")
     p_audit.add_argument("--task-id", default="TASK-2026-001")
     p_audit.add_argument("--target", default="KEY-TARGET-01")
-    p_audit.add_argument("--primary", type=float, default=28.5)
-    p_audit.add_argument("--secondary", type=float, default=14.2)
+    p_audit.add_argument("--primary", type=finite_float, default=28.5)
+    p_audit.add_argument("--secondary", type=finite_float, default=14.2)
     p_audit.add_argument("--critical", action="store_true")
     p_audit.add_argument("--status", default="DISCORDANT")
 
@@ -87,7 +97,7 @@ def main(argv=None):
         dossier = supervisor.process_task(payload)
         print("=" * 80)
         print(f"  HOMOMORPHIC NEURAL NET INFERENCE")
-        print(f"  Domain: Post-Quantum Cryptography & Hardware Security | Standard: NIST FIPS 203/204/205 / ISO/IEC 17825 Standards")
+        print("  Mode: Local threshold-rule demonstration; not standards-certified or encrypted")
         print(f"  Dossier ID: {dossier.dossier_id} | Urgency: [{dossier.overall_urgency.value}]")
         print("=" * 80)
         for a in dossier.alerts:

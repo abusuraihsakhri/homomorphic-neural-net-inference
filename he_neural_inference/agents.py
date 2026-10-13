@@ -85,7 +85,7 @@ class HENeuralInferenceCoordinator:
 
         dossier = {
             "system": "homomorphic-neural-net-inference",
-            "domain": "Privacy-Preserving Federated Healthcare & FHE",
+            "domain": "Threshold-rule demonstration (no HE implementation)",
             "task_id": payload.task_id,
             "target_identifier": payload.target_identifier,
             "overall_status": status.value,
@@ -93,7 +93,7 @@ class HENeuralInferenceCoordinator:
             "critical_count": crit_count,
             "warning_count": warn_count,
             "alerts": [a.to_dict() for a in all_alerts],
-            "standard_specification": "CryptoNets / Encrypted Deep Learning",
+            "standard_specification": "CryptoNets referenced for context; not implemented",
             "consensus_summary": f"Consensus evaluation completed across 3 sub-agents with status [{status.value}].",
         }
 
@@ -105,6 +105,6 @@ class HENeuralInferenceCoordinator:
         if "status" in q or "ledger" in q:
             return f"HE-NeuralInference: Polynomial Activation Encrypted Medical Classifier Agent currently managing {len(self.execution_ledger)} execution tasks in air-gapped memory."
         elif "standard" in q or "spec" in q:
-            return "Active runtime operating strictly according to CryptoNets / Encrypted Deep Learning specifications."
+            return "CryptoNets / Encrypted Deep Learning are references only; this runtime performs threshold rules without encryption."
         else:
-            return f"HE-NeuralInference: Polynomial Activation Encrypted Medical Classifier Agent executive coordinator online. Zero-telemetry on-premises surveillance active."
+            return "Local threshold-rule evaluator online; no encrypted neural-network inference is performed."

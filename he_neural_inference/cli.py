@@ -5,12 +5,23 @@ import argparse
 import csv
 import json
 import math
+import math
 import os
 import sys
 from .models import FrontierPayload
 from .agents import HENeuralInferenceCoordinator
 
 coordinator = HENeuralInferenceCoordinator()
+
+
+def finite_float(value):
+    try:
+        result = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Expected a finite number") from exc
+    if not math.isfinite(result):
+        raise argparse.ArgumentTypeError("Expected a finite number")
+    return result
 
 
 def safe_csv_row(row):
@@ -50,8 +61,8 @@ def main(argv=None):
     p_audit = subparsers.add_parser("audit", help="Run single task evaluation")
     p_audit.add_argument("--task-id", default="TASK-2026-001")
     p_audit.add_argument("--target", default="TARGET-GEN-01")
-    p_audit.add_argument("--primary", type=float, default=29.4)
-    p_audit.add_argument("--secondary", type=float, default=15.1)
+    p_audit.add_argument("--primary", type=finite_float, default=29.4)
+    p_audit.add_argument("--secondary", type=finite_float, default=15.1)
     p_audit.add_argument("--critical", action="store_true")
     p_audit.add_argument("--status", default="DISCORDANT")
 
@@ -83,7 +94,7 @@ def main(argv=None):
         dossier = coordinator.process(payload)
         print("=" * 80)
         print(f"  HE-NEURALINFERENCE: POLYNOMIAL ACTIVATION ENCRYPTED MEDICAL CLASSIFIER AGENT")
-        print(f"  Domain: Privacy-Preserving Federated Healthcare & FHE | Standard: CryptoNets / Encrypted Deep Learning")
+        print("  Mode: Threshold-rule demonstration; no homomorphic encryption or neural-network inference")
         print(f"  Task: {dossier['task_id']} | Status: [{dossier['overall_status']}] | Total Alerts: {dossier['total_alerts']}")
         print("=" * 80)
         for a in dossier["alerts"]:
@@ -153,9 +164,11 @@ def main(argv=None):
             import uvicorn
             from .server import create_app
             app = create_app()
-            if app:
-                print(f"Starting HE-NeuralInference: Polynomial Activation Encrypted Medical Classifier Agent on http://{args.host}:{args.port}")
-                uvicorn.run(app, host=args.host, port=args.port)
+            if app is None:
+                print("FastAPI is not installed. Install the server extra.", file=sys.stderr)
+                return 1
+            print(f"Starting legacy rule API on http://{args.host}:{args.port}")
+            uvicorn.run(app, host=args.host, port=args.port)
         except ImportError:
             print("FastAPI / uvicorn not installed. Run 'pip install fastapi uvicorn'")
             return 1
