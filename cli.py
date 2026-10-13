@@ -9,7 +9,7 @@ import os
 import sys
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
-from agents.base import AuditLogger
+from agents.base import AuditLogger, SecurityException
 
 supervisor = SystemSupervisor(model_provider="mock")
 
@@ -149,7 +149,7 @@ def main(argv=None):
                     is_critical_flag=parse_csv_bool(r.get("is_critical_flag")),
                 )
                 dossier = supervisor.process_task(payload)
-            except (ValueError, TypeError) as exc:
+            except (ValueError, TypeError, SecurityException) as exc:
                 print(f"Error in CSV row {row_num}: {exc}", file=sys.stderr)
                 return 1
             row_dict = dict(r)

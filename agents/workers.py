@@ -1,7 +1,7 @@
 """
 Specialized Domain Worker Agents for Homomorphic Neural Net Inference.
 Domain: Post-Quantum Cryptography & Hardware Security
-Standard: NIST FIPS 203/204/205 / ISO/IEC 17825 Standards
+Scope: Local demonstration rules; no standards certification
 """
 import uuid
 from typing import Dict, Any, List, Optional

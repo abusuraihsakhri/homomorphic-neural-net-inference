@@ -3,6 +3,7 @@ Distributed Component Coordination & Executive Hierarchy for HE-NeuralInference:
 Domain: Privacy-Preserving Federated Healthcare & FHE
 """
 import uuid
+import math
 from typing import Dict, Any, List, Optional
 from .models import FrontierPayload, AgentTelemetryAlert, ExecutionStatus
 from .engine import FrontierDomainEngine
@@ -68,6 +69,8 @@ class HENeuralInferenceCoordinator:
         self.execution_ledger: Dict[str, Dict[str, Any]] = {}
 
     def process(self, payload: FrontierPayload) -> Dict[str, Any]:
+        if not all(math.isfinite(value) for value in (payload.primary_metric, payload.secondary_metric)):
+            raise ValueError("Metrics must be finite numbers")
         all_alerts: List[AgentTelemetryAlert] = []
         all_alerts.extend(self.sub_1.audit(payload))
         all_alerts.extend(self.sub_2.audit(payload))

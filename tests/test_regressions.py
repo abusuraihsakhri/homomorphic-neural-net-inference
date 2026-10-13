@@ -107,3 +107,18 @@ def test_negative_numeric_values_remain_reimportable(tmp_path):
         assert row["primary_metric"] == "-3"
         assert row["secondary_metric"] == "-2"
         assert cli_fn(["batch", "-i", str(first), "-o", str(second)]) == 0
+
+def test_legacy_coordinator_rejects_nonfinite_metrics():
+    from he_neural_inference.models import FrontierPayload
+    from he_neural_inference.agents import HENeuralInferenceCoordinator
+    from pytest import raises
+    payload = FrontierPayload("T", "SYNTHETIC", float("nan"), 1, "NOMINAL")
+    with raises(ValueError, match="finite"):
+        HENeuralInferenceCoordinator().process(payload)
+
+
+def test_simulation_rejects_zero_iterations():
+    from simulator import run_simulation
+    from pytest import raises
+    with raises(ValueError, match="positive"):
+        run_simulation(0)
