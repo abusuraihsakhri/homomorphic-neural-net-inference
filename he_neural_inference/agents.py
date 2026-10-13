@@ -3,6 +3,7 @@ Distributed Component Coordination & Executive Hierarchy for HE-NeuralInference:
 Domain: Privacy-Preserving Federated Healthcare & FHE
 """
 import uuid
+import math
 from typing import Dict, Any, List, Optional
 from .models import FrontierPayload, AgentTelemetryAlert, ExecutionStatus
 from .engine import FrontierDomainEngine
@@ -68,6 +69,8 @@ class HENeuralInferenceCoordinator:
         self.execution_ledger: Dict[str, Dict[str, Any]] = {}
 
     def process(self, payload: FrontierPayload) -> Dict[str, Any]:
+        if not all(math.isfinite(value) for value in (payload.primary_metric, payload.secondary_metric)):
+            raise ValueError("Metrics must be finite numbers")
         all_alerts: List[AgentTelemetryAlert] = []
         all_alerts.extend(self.sub_1.audit(payload))
         all_alerts.extend(self.sub_2.audit(payload))
@@ -85,7 +88,7 @@ class HENeuralInferenceCoordinator:
 
         dossier = {
             "system": "homomorphic-neural-net-inference",
-            "domain": "Privacy-Preserving Federated Healthcare & FHE",
+            "domain": "Threshold-rule demonstration (no HE implementation)",
             "task_id": payload.task_id,
             "target_identifier": payload.target_identifier,
             "overall_status": status.value,
@@ -93,7 +96,7 @@ class HENeuralInferenceCoordinator:
             "critical_count": crit_count,
             "warning_count": warn_count,
             "alerts": [a.to_dict() for a in all_alerts],
-            "standard_specification": "CryptoNets / Encrypted Deep Learning",
+            "standard_specification": "CryptoNets referenced for context; not implemented",
             "consensus_summary": f"Consensus evaluation completed across 3 sub-agents with status [{status.value}].",
         }
 
@@ -105,6 +108,6 @@ class HENeuralInferenceCoordinator:
         if "status" in q or "ledger" in q:
             return f"HE-NeuralInference: Polynomial Activation Encrypted Medical Classifier Agent currently managing {len(self.execution_ledger)} execution tasks in air-gapped memory."
         elif "standard" in q or "spec" in q:
-            return "Active runtime operating strictly according to CryptoNets / Encrypted Deep Learning specifications."
+            return "CryptoNets / Encrypted Deep Learning are references only; this runtime performs threshold rules without encryption."
         else:
-            return f"HE-NeuralInference: Polynomial Activation Encrypted Medical Classifier Agent executive coordinator online. Zero-telemetry on-premises surveillance active."
+            return "Local threshold-rule evaluator online; no encrypted neural-network inference is performed."

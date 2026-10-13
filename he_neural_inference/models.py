@@ -1,7 +1,7 @@
 """
 Data Models & Telemetry Definitions for HE-NeuralInference: Polynomial Activation Encrypted Medical Classifier Agent.
 Domain: Privacy-Preserving Federated Healthcare & FHE
-Standard: CryptoNets / Encrypted Deep Learning
+Reference: CryptoNets / Encrypted Deep Learning (not implemented)
 """
 import datetime
 from dataclasses import dataclass, field
@@ -35,7 +35,7 @@ class AgentTelemetryAlert:
     summary: str
     technical_details: str
     actionable_remediation: str
-    standard_reference: str = "CryptoNets / Encrypted Deep Learning"
+    standard_reference: str = "Demonstration only; no homomorphic encryption"
     timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
     def to_dict(self) -> Dict[str, Any]:

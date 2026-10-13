@@ -1,7 +1,7 @@
 """
-Core Algorithmic Engine & Cryptographic / Biological Logic for HE-NeuralInference: Polynomial Activation Encrypted Medical Classifier Agent.
+Threshold-rule evaluator (no cryptographic or biological model execution) for HE-NeuralInference: Polynomial Activation Encrypted Medical Classifier Agent.
 Domain: Privacy-Preserving Federated Healthcare & FHE
-Standard: CryptoNets / Encrypted Deep Learning
+Reference: CryptoNets / Encrypted Deep Learning (not implemented)
 """
 import math
 from typing import Dict, Any, List, Optional

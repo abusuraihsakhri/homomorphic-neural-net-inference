@@ -4,13 +4,53 @@ Command Line Interface for Homomorphic Neural Net Inference.
 import argparse
 import csv
 import json
+import math
 import os
 import sys
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
-from agents.base import AuditLogger
+from agents.base import AuditLogger, SecurityException
 
 supervisor = SystemSupervisor(model_provider="mock")
+
+
+def finite_float(value):
+    try:
+        result = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Expected a finite number") from exc
+    if not math.isfinite(result):
+        raise argparse.ArgumentTypeError("Expected a finite number")
+    return result
+
+
+def safe_csv_row(row):
+    """Escape spreadsheet expressions while preserving ordinary signed numbers."""
+    def protect(value):
+        if not isinstance(value, str):
+            return value
+        trimmed = value.lstrip()
+        if trimmed.startswith(("+", "-")):
+            try:
+                if math.isfinite(float(trimmed)):
+                    return value
+            except ValueError:
+                pass
+        if trimmed.startswith(("=", "+", "-", "@")):
+            return "'" + value
+        return value
+
+    return {key: protect(value) for key, value in row.items()}
+
+
+def parse_csv_bool(value):
+    """Parse boolean text explicitly instead of bool("False")."""
+    normalized = str(value if value is not None else "").strip().lower()
+    if normalized in ("", "false", "0", "no", "n", "f"):
+        return False
+    if normalized in ("true", "1", "yes", "y", "t"):
+        return True
+    raise ValueError(f"Invalid is_critical_flag value: {value!r}")
 
 
 def main(argv=None):
@@ -21,8 +61,8 @@ def main(argv=None):
     p_audit = subparsers.add_parser("audit", help="Run single task evaluation")
     p_audit.add_argument("--task-id", default="TASK-2026-001")
     p_audit.add_argument("--target", default="KEY-TARGET-01")
-    p_audit.add_argument("--primary", type=float, default=28.5)
-    p_audit.add_argument("--secondary", type=float, default=14.2)
+    p_audit.add_argument("--primary", type=finite_float, default=28.5)
+    p_audit.add_argument("--secondary", type=finite_float, default=14.2)
     p_audit.add_argument("--critical", action="store_true")
     p_audit.add_argument("--status", default="DISCORDANT")
 
@@ -57,7 +97,7 @@ def main(argv=None):
         dossier = supervisor.process_task(payload)
         print("=" * 80)
         print(f"  HOMOMORPHIC NEURAL NET INFERENCE")
-        print(f"  Domain: Post-Quantum Cryptography & Hardware Security | Standard: NIST FIPS 203/204/205 / ISO/IEC 17825 Standards")
+        print("  Mode: Local threshold-rule demonstration; not standards-certified or encrypted")
         print(f"  Dossier ID: {dossier.dossier_id} | Urgency: [{dossier.overall_urgency.value}]")
         print("=" * 80)
         for a in dossier.alerts:
@@ -78,7 +118,7 @@ def main(argv=None):
         trail = AuditLogger.get_trail()
         valid = AuditLogger.verify_integrity()
         print(f"Audit Trail Blocks: {len(trail)} | Cryptographic Integrity Verified: {valid}")
-        return 0
+        return 0 if valid else 1
 
     if args.command == "batch":
         if not os.path.isfile(args.input):
@@ -88,19 +128,30 @@ def main(argv=None):
             reader = csv.DictReader(f)
             fieldnames = list(reader.fieldnames or [])
             rows = list(reader)
+        if any(None in row for row in rows):
+            print("Error: CSV row contains more fields than the header.", file=sys.stderr)
+            return 1
 
-        out_fields = fieldnames + ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]
+        required = {"task_id", "target_identifier", "primary_metric"}
+        if not required.issubset(fieldnames):
+            print(f"Error: Missing CSV columns: {', '.join(sorted(required - set(fieldnames)))}", file=sys.stderr)
+            return 1
+        out_fields = list(dict.fromkeys(fieldnames + ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]))
         out_rows = []
-        for r in rows:
-            payload = SystemTaskPayload(
-                task_id=r.get("task_id", "TASK-01"),
-                target_identifier=r.get("target_identifier", "TARGET-01"),
-                primary_metric=float(r.get("primary_metric", 15.0)),
-                secondary_metric=float(r.get("secondary_metric", 5.0)),
-                status_descriptor=r.get("status_descriptor", "NOMINAL"),
-                is_critical_flag=bool(r.get("is_critical_flag", False)),
-            )
-            dossier = supervisor.process_task(payload)
+        for row_num, r in enumerate(rows, 2):
+            try:
+                payload = SystemTaskPayload(
+                    task_id=r.get("task_id", ""),
+                    target_identifier=r.get("target_identifier", ""),
+                    primary_metric=float(r.get("primary_metric", "")),
+                    secondary_metric=float(r.get("secondary_metric") or 0.0),
+                    status_descriptor=r.get("status_descriptor") or "NOMINAL",
+                    is_critical_flag=parse_csv_bool(r.get("is_critical_flag")),
+                )
+                dossier = supervisor.process_task(payload)
+            except (ValueError, TypeError, SecurityException) as exc:
+                print(f"Error in CSV row {row_num}: {exc}", file=sys.stderr)
+                return 1
             row_dict = dict(r)
             row_dict["overall_urgency"] = dossier.overall_urgency.value
             row_dict["integrity_status"] = dossier.integrity_status.value
@@ -108,10 +159,13 @@ def main(argv=None):
             row_dict["audit_hash"] = dossier.audit_hash
             out_rows.append(row_dict)
 
+        if any(name.lstrip().startswith(("=", "+", "-", "@")) for name in fieldnames):
+            print("Error: CSV column names must not be spreadsheet formulas.", file=sys.stderr)
+            return 1
         with open(args.output, mode="w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=out_fields)
             writer.writeheader()
-            writer.writerows(out_rows)
+            writer.writerows(safe_csv_row(row) for row in out_rows)
         print(f"Processed {len(out_rows)} records -> {args.output}")
         return 0
 
