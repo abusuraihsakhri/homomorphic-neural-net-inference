@@ -83,8 +83,8 @@ def test_api_rejects_nested_identifiers_and_nonfinite_numbers():
 def test_export_escapes_spreadsheet_formulas(tmp_path):
     inp = tmp_path / "formulas.csv"
     inp.write_text(
-        "task_id,target_identifier,primary_metric,secondary_metric,is_critical_flag,status_descriptor\\n"
-        "=1+2,SYNTHETIC,5,0,False,NOMINAL\\n", encoding="utf-8"
+        "task_id,target_identifier,primary_metric,secondary_metric,is_critical_flag,status_descriptor\n"
+        "=1+2,SYNTHETIC,5,0,False,NOMINAL\n", encoding="utf-8"
     )
     out = tmp_path / "result.csv"
     assert primary_cli(["batch", "-i", str(inp), "-o", str(out)]) == 0
