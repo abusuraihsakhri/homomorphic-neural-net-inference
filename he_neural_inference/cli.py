@@ -12,6 +12,15 @@ from .agents import HENeuralInferenceCoordinator
 coordinator = HENeuralInferenceCoordinator()
 
 
+def safe_csv_row(row):
+    """Prevent spreadsheet formula execution when exported CSV is opened."""
+    return {
+        key: ("'" + value if isinstance(value, str)
+              and value.lstrip().startswith(("=", "+", "-", "@")) else value)
+        for key, value in row.items()
+    }
+
+
 def parse_csv_bool(value):
     """Parse boolean text explicitly instead of bool("False")."""
     normalized = str(value if value is not None else "").strip().lower()
@@ -87,6 +96,9 @@ def main(argv=None):
             reader = csv.DictReader(f)
             fieldnames = list(reader.fieldnames or [])
             rows = list(reader)
+        if any(None in row for row in rows):
+            print("Error: CSV row contains more fields than the header.", file=sys.stderr)
+            return 1
 
         required = {"task_id", "target_identifier", "primary_metric"}
         if not required.issubset(fieldnames):
@@ -115,10 +127,13 @@ def main(argv=None):
             row_dict["consensus_summary"] = dossier["consensus_summary"]
             out_rows.append(row_dict)
 
+        if any(name.lstrip().startswith(("=", "+", "-", "@")) for name in fieldnames):
+            print("Error: CSV column names must not be spreadsheet formulas.", file=sys.stderr)
+            return 1
         with open(args.output, mode="w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=out_fields)
             writer.writeheader()
-            writer.writerows(out_rows)
+            writer.writerows(safe_csv_row(row) for row in out_rows)
         print(f"Processed {len(out_rows)} records -> {args.output}")
         return 0
 
