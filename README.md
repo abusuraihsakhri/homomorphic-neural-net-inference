@@ -1,166 +1,79 @@
 # Homomorphic Neural Net Inference
 
-> **Domain:** Post-Quantum Cryptography & Zero-Knowledge Architecture
-> **Reference Guidelines & Standards:** `NIST FIPS 203/204/205, NIST SP 800-90B & ISO/IEC Standards`
+**Implementation status:** This repository currently implements configurable-in-code **threshold and descriptor evaluations**, not homomorphic encryption or neural-network inference. There is no CKKS, BFV, encrypted model execution, clinical-model validation, or claimed standards certification. The repository name is retained for continuity.
 
-<div align="center">
+## What is implemented
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+- Primary Python evaluation pipeline in `agents/`: checks primary metric **> 25**, secondary metric **> 12** or an explicit critical flag, and status descriptors containing `DISCORDANT`, `ANOMALY`, `MUTANT`, `VIOLATION`, `FAIL`, or `REJECT`. Returns a structured evaluation dossier.
+- Alternative legacy rule coordinator in `he_neural_inference/` with its own thresholds. It is not an encrypted-computation engine.
+- CLI audit, mock chat, CSV batch processing, and audit-integrity verification.
+- FastAPI endpoints for health, rule evaluation, mock chat, Prometheus-style metrics, and process-local audit logs.
+- HMAC-SHA256 chained audit entries and pattern-based identifier screening; see limitations below.
+- A static browser demonstration in `web/` that evaluates the primary rules locally and exports JSON. No backend or browser Python runtime is required.
 
-</div>
+## Browser demonstration
 
----
+Run a local static HTTP server:
 
-## 📖 What It Does
-
-**Homomorphic Neural Net Inference** is an advanced analytical and computational platform implementing Polynomial activation encrypted deep learning inference on CKKS-encrypted medical images. It provides a multi-agent evaluation framework with cryptographic audit trails and PHI (Protected Health Information) protection.
-
----
-
-## ⚙️ Key Capabilities & Algorithmic Modules
-
-- **Deterministic Calculation Engine**: Strict compliance with standard reference formulations and thresholds.
-- **Risk & Urgency Classification**: Multi-tier categorization (ROUTINE, ELEVATED, CRITICAL_STAT) with automated clinical/operational action recommendations.
-- **Validation & Guardrails**: Rigorous input bounds checking and anomaly detection.
-- **Multi-Agent Worker System**: Specialized workers (InvariantQC, SafetyEscalation, ProtocolConformance) for comprehensive evaluation.
-- **Enrichment Suite**: 8 domain-specific engines for features, monitoring, escalation, deployment, audit, workflow, analytics, and outcomes.
-
----
-
-## 💻 CLI Quickstart & Usage
-
-### Installation
 ```bash
-pip install -e .
+python -m http.server 8765 --directory web
 ```
 
-### 1. Run Single Task Evaluation
-```bash
-python cli.py audit --task-id TASK-001 --target TARGET-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
-```
+Open **http://localhost:8765/**. The page runs JavaScript locally, without remote API calls. It does not encrypt inputs or sign audit records. Only use synthetic data. A GitHub Pages deployment workflow is included; the existence of the workflow does not itself verify that Pages is enabled.
 
-### 2. System Configuration Query
-```bash
-python cli.py chat "What is the system status?"
-```
+## Install and use
 
-### 3. Batch Process CSV Records
+Requires Python 3.9 or newer; CI exercises Python 3.10–3.13.
+
 ```bash
+python -m pip install -e ".[server,test]"
+python cli.py audit --task-id DEMO-01 --target SYNTHETIC-01 --primary 29.4 --secondary 14.8 --status DISCORDANT
 python cli.py batch -i sample.csv -o results.csv
-```
-
-### 4. Verify Audit Trail Integrity
-```bash
 python cli.py verify-audit
+python cli.py chat "What is the status?"
 ```
 
-### 5. Launch FastAPI REST Server
+The installed `homomorphic-neural-net-inference` command retains the alternative `he_neural_inference.cli` entry point for compatibility. Use `python cli.py` for the primary pipeline documented above. Both CSV implementations explicitly parse `True` and `False`, report malformed values, and escape spreadsheet-formula-like input on export.
+
+Start the API:
+
 ```bash
 python cli.py serve --host 127.0.0.1 --port 8000
 ```
 
-### Input Data Schema
+Visit **http://127.0.0.1:8000/docs** for generated OpenAPI documentation. The main endpoints are `GET /health`, `POST /api/audit`, `POST /api/chat`, `GET /metrics`, and `GET /api/audit/logs`. `/api/chat` provides a deterministic mock response, not a live model.
 
-| Field | Type | Description | Requirement |
-|:------|:-----|:------------|:------------|
-| `task_id` | string | Unique task / case identifier | Required |
-| `target_identifier` | string | Entity, patient key, or target | Required |
-| `primary_metric` | float | Primary domain measurement or score | Required |
-| `secondary_metric` | float | Secondary kinetic or confidence score | Optional (default: 0.0) |
-| `is_critical_flag` | boolean | Emergency escalation trigger | Optional (default: false) |
-| `status_descriptor` | string | Status code or phenotype descriptor | Optional (default: "NOMINAL") |
+## Security and data handling
 
----
+- **Do not submit identifiable patient data.** The pattern-based identifier filter catches some emails, MRNs, phone numbers, SSNs, and names, but is neither comprehensive de-identification nor a HIPAA-compliance guarantee.
+- The API has **no authentication or transport-layer configuration**. It must not be exposed to the public internet or used for protected health information without an appropriate security architecture.
+- Audit records are HMAC-signed and checked against their signed contents and predecessor hash. They are **in-memory only**, lost on restart, and cannot prove completeness against deletion of final entries. They are not an immutable or externally anchored audit ledger.
+- Set a strong `AUDIT_SECRET_KEY` environment variable to preserve signing-key identity across restarts. Without it, the process generates a random temporary key.
+- No user records are sent from the static browser demo, stored by its server, or written to browser storage. The page can export a JSON file on request.
+- The repository previously contained a hard-coded Compose signing key. **Rotate that key if it was ever used.** Removing it from the current configuration does not erase Git history.
 
-## 🛡️ Security & Enterprise Architecture
-
-* **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, emails, DOBs, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
-
-### Environment Variables
-
-| Variable | Description | Default |
-|:---------|:------------|:--------|
-| `AUDIT_SECRET_KEY` | Secret key for HMAC-SHA256 audit signatures | Randomly generated (warning issued) |
-| `MODEL_PROVIDER` | LLM provider (`mock`, `ollama`, `claude`, `openai`) | `mock` |
-
----
-
-## 🧪 Testing & Verification
-
-Run the automated test suite:
+For Docker Compose, set the key in the shell environment before starting:
 
 ```bash
-pytest -v
+export AUDIT_SECRET_KEY="$(openssl rand -hex 32)"
+docker compose up --build
 ```
 
-Execute high-throughput batch simulation benchmarks:
+Docker also supports `docker build -t homomorphic-neural-net-inference .` and running the image with a supplied `AUDIT_SECRET_KEY`.
+
+## Tests and development
 
 ```bash
-python simulator.py 1000
+python -m pip install -e ".[server,test]"
+python -m pytest -q
+node --test web/app.test.cjs
+python -m compileall -q agents he_neural_inference cli.py enrichment.py simulator.py
 ```
 
-### API Endpoints
+No npm install or JavaScript bundler is needed. The GitHub Actions CI workflow runs Python regression tests and browser-rule tests. Runtime rule logic remains source-authoritative; statements about CKKS or clinical performance in older commits are not evidence that those capabilities exist.
 
-| Endpoint | Method | Description |
-|:---------|:-------|:------------|
-| `/health` | GET | Health and metadata check |
-| `/metrics` | GET | Prometheus operational metrics |
-| `/api/audit` | POST | Dispatch task payload across specialized workers |
-| `/api/chat` | POST | Air-gapped supervisory conversational assistant |
-| `/api/audit/logs` | GET | Retrieve and verify HMAC audit trail |
+## Technology and license
 
----
+Python, Pydantic 2, FastAPI (optional server), standard-library HMAC-SHA256, plain HTML/CSS/JavaScript, and GitHub Actions. The standalone browser demo targets modern evergreen browsers; comprehensive cross-browser validation has not been performed.
 
-## 🐳 Container Deployment
-
-```bash
-docker build -t homomorphic-neural-net-inference .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secret-key homomorphic-neural-net-inference
-```
-
-Or using Docker Compose:
-
-```bash
-docker-compose up -d
-```
-
----
-
-## 📁 Project Structure
-
-```
-homomorphic-neural-net-inference/
-├── agents/                  # Core agent system
-│   ├── api.py              # FastAPI REST server
-│   ├── base.py             # Security, PHI guard, audit trail
-│   ├── models.py           # Pydantic data models
-│   ├── supervisor.py       # Multi-agent orchestrator
-│   ├── workers.py          # Specialized evaluation workers
-│   ├── metrics.py          # Prometheus metrics collector
-│   ├── learning.py         # Bayesian calibration engine
-│   ├── streamer.py         # WebSocket telemetry broadcaster
-│   └── llm_factory.py      # LLM provider factory
-├── he_neural_inference/    # Alternative HE-NeuralInference module
-│   ├── agents.py           # Coordinator and sub-agents
-│   ├── engine.py           # Core algorithmic engine
-│   ├── models.py           # Data models
-│   ├── cli.py              # CLI interface
-│   └── server.py           # FastAPI server factory
-├── tests/                  # Test suite
-├── web/                    # Operations console (HTML)
-├── cli.py                  # Main CLI entry point
-├── simulator.py            # High-throughput simulation
-├── enrichment.py           # Domain enrichment engines
-├── Dockerfile              # Container build
-├── docker-compose.yml      # Container orchestration
-└── pyproject.toml          # Project configuration
-```
+MIT license; see [LICENSE](LICENSE).
