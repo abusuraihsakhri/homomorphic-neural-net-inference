@@ -12,6 +12,16 @@ from .agents import HENeuralInferenceCoordinator
 coordinator = HENeuralInferenceCoordinator()
 
 
+def parse_csv_bool(value):
+    """Parse boolean text explicitly instead of bool("False")."""
+    normalized = str(value if value is not None else "").strip().lower()
+    if normalized in ("", "false", "0", "no", "n", "f"):
+        return False
+    if normalized in ("true", "1", "yes", "y", "t"):
+        return True
+    raise ValueError(f"Invalid is_critical_flag value: {value!r}")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="homomorphic-neural-net-inference", description="HE-NeuralInference: Polynomial Activation Encrypted Medical Classifier Agent")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -78,18 +88,26 @@ def main(argv=None):
             fieldnames = list(reader.fieldnames or [])
             rows = list(reader)
 
-        out_fields = fieldnames + ["overall_status", "total_alerts", "critical_count", "consensus_summary"]
+        required = {"task_id", "target_identifier", "primary_metric"}
+        if not required.issubset(fieldnames):
+            print(f"Error: Missing CSV columns: {', '.join(sorted(required - set(fieldnames)))}", file=sys.stderr)
+            return 1
+        out_fields = list(dict.fromkeys(fieldnames + ["overall_status", "total_alerts", "critical_count", "consensus_summary"]))
         out_rows = []
-        for r in rows:
-            payload = FrontierPayload(
-                task_id=r.get("task_id", "TASK-01"),
-                target_identifier=r.get("target_identifier", "TARGET-01"),
-                primary_metric=float(r.get("primary_metric", 15.0)),
-                secondary_metric=float(r.get("secondary_metric", 5.0)),
-                status_descriptor=r.get("status_descriptor", "NOMINAL"),
-                is_critical_flag=bool(r.get("is_critical_flag", False)),
-            )
-            dossier = coordinator.process(payload)
+        for row_num, r in enumerate(rows, 2):
+            try:
+                payload = FrontierPayload(
+                    task_id=r.get("task_id", ""),
+                    target_identifier=r.get("target_identifier", ""),
+                    primary_metric=float(r.get("primary_metric", "")),
+                    secondary_metric=float(r.get("secondary_metric") or 0.0),
+                    status_descriptor=r.get("status_descriptor") or "NOMINAL",
+                    is_critical_flag=parse_csv_bool(r.get("is_critical_flag")),
+                )
+                dossier = coordinator.process(payload)
+            except (ValueError, TypeError) as exc:
+                print(f"Error in CSV row {row_num}: {exc}", file=sys.stderr)
+                return 1
             row_dict = dict(r)
             row_dict["overall_status"] = dossier["overall_status"]
             row_dict["total_alerts"] = dossier["total_alerts"]
