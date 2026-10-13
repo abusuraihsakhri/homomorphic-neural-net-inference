@@ -15,7 +15,7 @@ def create_app():
 
         app = FastAPI(
             title="HE-NeuralInference: Polynomial Activation Encrypted Medical Classifier Agent",
-            description="Evaluates neural networks with square/cubic polynomial activations directly on CKKS-encrypted patient biomarkers and chest X-ray embeddings.",
+            description="Legacy deterministic telemetry rule evaluator. No CKKS, encrypted inference, or patient-data handling is implemented.",
             version="2.0.0-FRONTIER",
         )
 

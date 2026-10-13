@@ -13,8 +13,8 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 app = FastAPI(
     title="Homomorphic Neural Net Inference API",
-    description="Enterprise Distributed Component Platform (Post-Quantum Cryptography & Hardware Security)",
-    version="3.0.0-ENTERPRISE",
+    description="Deterministic threshold-rule evaluation API. No homomorphic encryption, neural-network inference, or clinical validation.",
+    version="2.0.0",
 )
 
 
@@ -24,7 +24,7 @@ class ChatRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "HEALTHY", "service": "homomorphic-neural-net-inference", "domain": "Post-Quantum Cryptography & Hardware Security", "standard": "NIST FIPS 203/204/205 / ISO/IEC 17825 Standards", "version": "3.0.0-ENTERPRISE"}
+    return {"status": "HEALTHY", "service": "homomorphic-neural-net-inference", "domain": "Threshold-rule demonstration", "standard": "No standards certification claimed", "version": "2.0.0"}
 
 
 @app.get("/metrics")
